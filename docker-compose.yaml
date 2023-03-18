@@ -1,0 +1,42 @@
+version: '3.2'
+
+volumes:
+  local_postgres_data: {}
+
+networks:
+  default:
+    external:
+      name: actix_blog
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    links:
+      - db
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - 8088:8088
+    command: bash -c "bash ./wait-for-it.sh db:5432 -q -- diesel setup && cargo run --bin main"
+    dns:
+      - 8.8.8.8
+    restart: always
+    stdin_open: true
+
+  db:
+    image: postgis/postgis:15-3.3-alpine
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGERS_DB=actix_blog
+    volumes:
+      - local_postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
